@@ -14,7 +14,7 @@
  - (void)sd_setImageWithURL:(nullable NSURL *)url;
 ```
 
-2. 一步步走下来，会发现实际运用的是`UIView+WebCache`中的方法，包括`UIButton+WebCache`内部核心方法也是调用的下面的方法，其中`SDWebImageOptions`策略详细介绍可以看[这里]()
+2. 一步步走下来，会发现实际运用的是`UIView+WebCache`中的方法，包括`UIButton+WebCache`内部核心方法也是调用的下面的方法，其中`SDWebImageOptions`策略详细介绍可以看[这里](https://github.com/LionWY/SourceCodeStorage/blob/master/Demo/SourceCode/SourceCode/libs/SDWebImage/SDWebImageManager.h)
 ```
 - (void)sd_internalSetImageWithURL:(nullable NSURL *)url
                   placeholderImage:(nullable UIImage *)placeholder
@@ -33,7 +33,7 @@
     // 取消当前view下 跟validOperationKey有关的所有下载操作，以保证不会跟下面的操作有冲突
     [self sd_cancelImageLoadOperationWithKey:validOperationKey];
     
-    // 通过runtime的关联对象给分类添加属性，设置图片地址
+    // 通过runtime的关联对象给UIView添加属性，设置图片地址
     objc_setAssociatedObject(self, &imageURLKey, url, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 ```
 其中取消操作方法内部涉及到一个协议`<SDWebImageOperation>`，这个协议只有一个`cancel`方法，可见，这个协议就是用来取消操作的，只要遵守该协议的类，必定会有`cancel`方法。
@@ -210,7 +210,7 @@ if ([url isKindOfClass:NSString.class]) {
 @property (copy, nonatomic, nullable) SDWebImageNoParamsBlock cancelBlock;
 @property (strong, nonatomic, nullable) NSOperation *cacheOperation;
 ```
-最后需要返回`operation`，所以进行创建、赋值、返回。
+最后需要返回`operation`，所以进行创建、属性赋值、返回。
 ```
 // 创建一个SDWebImageCombinedOperation，加上 __block，可以让它在后续block内进行修改，
     __block SDWebImageCombinedOperation *operation = [SDWebImageCombinedOperation new];
@@ -255,7 +255,7 @@ if ([url isKindOfClass:NSString.class]) {
 
 6. 在缓存中查找图片，并将找到的图片的相关信息返回，
 同时对`operation.cacheOperation`属性赋值。
-（该方法是`SDImageCache`类的实例方法，明天再分析）
+（该方法是`SDImageCache`类的实例方法，下篇再分析）
 ```
 // 根据url 返回一个本地用来缓存的标志 key
     NSString *key = [self cacheKeyForURL:url];
@@ -266,7 +266,7 @@ if ([url isKindOfClass:NSString.class]) {
 ```
 
 7. 缓存中是否查找到图片，分别处理：
-   a. 找不到图片，并且可以从网络下载，就进行网络下载
+   a. 找不到图片，但是允许从网络下载，就进行网络下载
 ```
 // 如果执行过程中操作取消，安全移除操作
 // return 是跳出这个block
@@ -302,16 +302,16 @@ else {
 ```
 if (cachedImage && options & SDWebImageRefreshCached) {
            
-           // If image was found in the cache but SDWebImageRefreshCached is provided, notify about the cached image
-           // AND try to re-download it in order to let a chance to NSURLCache to refresh it from server.
-           // 如果在缓存中找到了图片，但是设置了SDWebImageRefreshCached，因此要NSURLCache重新从服务器下载
-           // 先调用completeBlock后续进行网络下载
-           [self callCompletionBlockForOperation:weakOperation completion:completedBlock image:cachedImage data:cachedData error:nil cacheType:cacheType finished:YES url:url];
-       }
+		 // If image was found in the cache but SDWebImageRefreshCached is provided, notify about the cached image
+		 // AND try to re-download it in order to let a chance to NSURLCache to refresh it from server.
+		 // 如果在缓存中找到了图片，但是设置了SDWebImageRefreshCached，因此要NSURLCache重新从服务器下载
+		 // 先调用completeBlock后续进行网络下载
+		 [self callCompletionBlockForOperation:weakOperation completion:completedBlock image:cachedImage data:cachedData error:nil cacheType:cacheType finished:YES url:url];
+  }
 ```
 
 9. 根据`SDWebImageOptions`的选项对`SDWebImageDownloaderOptions`进行对接，一一对应，协调处理。`|=` 可以理解为`添加`
-  `SDWebImageDownloaderOptions`的详细介绍点[这里]()
+  `SDWebImageDownloaderOptions`的详细介绍点[这里](https://github.com/LionWY/SourceCodeStorage/blob/master/Demo/SourceCode/SourceCode/libs/SDWebImage/SDWebImageDownloader.h)
 ```
 downloaderOptions |= SDWebImageDownloaderLowPriority
 // 等同于
@@ -333,7 +333,7 @@ downloaderOptions = downloaderOptions | SDWebImageDownloaderLowPriority
 
 10. 通过`url`进行网络下载图片：
  每一个下载`SDWebImageDownloader`对象对应于一个`SDWebImageDownloadToken`对象，目的是用于取消/移除`SDWebImageDownloader`对象。
-通过`SDWebImageDownloader`的实例方法生成一个`SDWebImageDownloadToken`对象。（该方法明天分析）
+通过`SDWebImageDownloader`的实例方法生成一个`SDWebImageDownloadToken`对象。（该方法下篇分析）
 ```
 SDWebImageDownloadToken *subOperationToken = [self.imageDownloader downloadImageWithURL:url options:downloaderOptions progress:progressBlock completed:^(UIImage *downloadedImage, NSData *downloadedData, NSError *error, BOOL finished) {
 // 图片下载完成之后的操作。
@@ -343,9 +343,9 @@ SDWebImageDownloadToken *subOperationToken = [self.imageDownloader downloadImage
 通过上面生成的`subOperationToken`来进行取消`SDWebImageDownloader`操作
 ```
 operation.cancelBlock = ^{
-                [self.imageDownloader cancel:subOperationToken];
-                __strong __typeof(weakOperation) strongOperation = weakOperation;
-                [self safelyRemoveOperationFromRunning:strongOperation];
+	      [self.imageDownloader cancel:subOperationToken];
+	      __strong __typeof(weakOperation) strongOperation = weakOperation;
+	      [self safelyRemoveOperationFromRunning:strongOperation];
   };
 ```
 
@@ -366,7 +366,7 @@ if (!strongOperation || strongOperation.isCancelled) {
 	         && error.code != NSURLErrorCannotFindHost
 	         && error.code != NSURLErrorCannotConnectToHost) {
 	         
-	         // 跟前面第4点对应，failedURLs是否包含url
+	         // 跟前面第4点对应，failedURLs添加错误的url
 	         @synchronized (self.failedURLs) {
 	             [self.failedURLs addObject:url];
 	         }
@@ -375,7 +375,7 @@ if (!strongOperation || strongOperation.isCancelled) {
 ```
 
 12. 成功情况下：
-a. 对应于第8点，刷新缓存，但是没有下载图片的情况下：
+a. 对应于第8点，刷新缓存，并且图片下载失败的情况下：
 ```
 // 下载选项，允许失败后重新下载，
      if ((options & SDWebImageRetryFailed)) {
@@ -429,8 +429,9 @@ else {
 ```
 
 ### 总结：
-![SDWebImageManager流程图](http://oeb4c30x3.bkt.clouddn.com/SDWebImageManager.png)
+![SDWebImageManager流程图](http://oeb4c30x3.bkt.clouddn.com/SDWebImage%E6%B5%81%E7%A8%8B%E5%9B%BE.jpeg)
 
 ----
+
 
 

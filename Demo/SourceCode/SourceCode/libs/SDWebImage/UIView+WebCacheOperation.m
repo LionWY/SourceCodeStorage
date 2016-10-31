@@ -40,9 +40,9 @@ typedef NSMutableDictionary<NSString *, id> SDOperationsDictionary;
 
 - (void)sd_cancelImageLoadOperationWithKey:(nullable NSString *)key {
     // Cancel in progress downloader from queue
-    // 从队列中取消跟key有关的所有下载操作
+    // 取消跟key有关的所有下载操作
     SDOperationsDictionary *operationDictionary = [self operationDictionary];
-    NSLog(@"operationDictionary====%@", operationDictionary);
+    NSLog(@"operationDictionary====%@----%@", operationDictionary, key);
     
     id operations = operationDictionary[key];
     if (operations) {

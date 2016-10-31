@@ -23,7 +23,9 @@
 
 @implementation ViewController
 - (IBAction)btn1Click:(id)sender {
-    [_imgView2 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
+    [_imgView2 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"] placeholderImage:nil options:SDWebImageCacheMemoryOnly];
+    
+    
 }
 - (IBAction)btn2Click:(id)sender {
     [_imgView3 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
@@ -49,8 +51,14 @@
     
 //    [_imgView1 sd_setImageWithURL:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg" completed:nil];
     
-    [_imgView1 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
-//    [_imgView2 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
+//    [[SDImageCache sharedImageCache] queryCacheOperationForKey:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg" done:^(UIImage * _Nullable image, NSData * _Nullable data, SDImageCacheType cacheType) {
+//        
+//        NSLog(@"done");
+//    }];
+    
+//    [_imgView1 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"] ];
+//    [_imgView1 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
+//    [_imgView1 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
 //    
 //    [_imgView2 setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
 //    

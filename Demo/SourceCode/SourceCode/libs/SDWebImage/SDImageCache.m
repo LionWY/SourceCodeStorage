@@ -204,6 +204,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
             forKey:(nullable NSString *)key
             toDisk:(BOOL)toDisk
         completion:(nullable SDWebImageNoParamsBlock)completionBlock {
+    // 图片或者key不存在的情况下，直接返回
     if (!image || !key) {
         if (completionBlock) {
             completionBlock();
@@ -211,6 +212,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         return;
     }
     // if memory cache is enabled
+    // 内存缓存
     if (self.config.shouldCacheImagesInMemory) {
         NSUInteger cost = SDCacheCostForImage(image);
         [self.memCache setObject:image forKey:key cost:cost];
@@ -221,11 +223,15 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
             NSData *data = imageData;
             
             if (!data && image) {
+                // 1. 根据data确定图片的格式，png/jpeg
                 SDImageFormat imageFormatFromData = [NSData sd_imageFormatForImageData:data];
+                // 2. 格式不同，转换data的方式不同，
                 data = [image sd_imageDataAsFormat:imageFormatFromData];
             }
-            
+            // 3. 磁盘缓存，内部会做很多工作，是否io队列，创建文件夹，图片名字加密，是否存储iCloud，
             [self storeImageDataToDisk:data forKey:key];
+            
+            // 磁盘缓存需要时间，异步执行completionBlock，通知存储已经结束
             if (completionBlock) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     completionBlock();
@@ -366,7 +372,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
 - (nullable NSOperation *)queryCacheOperationForKey:(nullable NSString *)key done:(nullable SDCacheQueryCompletedBlock)doneBlock {
     
-    
+    // 如果key不存在，直接返回
     if (!key) {
         if (doneBlock) {
             doneBlock(nil, nil, SDImageCacheTypeNone);
@@ -379,7 +385,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     UIImage *image = [self imageFromMemoryCacheForKey:key];
     if (image) {
         NSData *diskData = nil;
-        // 是否是gif图片
+        // 是否是gif图片，实际内部查询，数组图片是否为空
         if ([image isGIF]) {
             // 在磁盘缓存中根据key查到图片的data
             diskData = [self diskImageDataBySearchingAllPathsForKey:key];
@@ -392,22 +398,31 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
     // 第二次在磁盘缓存中查找
     NSOperation *operation = [NSOperation new];
+    
+    
     dispatch_async(self.ioQueue, ^{
         if (operation.isCancelled) {
             // do not call the completion if cancelled
             return;
         }
         
+        
         // 磁盘文件IO会增大内存消耗，放在自动释放池中，降低内存峰值
         @autoreleasepool {
+            // 通过key获取文件路径，然后通过文件路径获取data，其中文件路径内部是通过md5加密的
             NSData *diskData = [self diskImageDataBySearchingAllPathsForKey:key];
+            
+            // 内部实现也是先获取data，然后转换成Image，其中image是经过解压缩，根据屏幕同比例增大，甚至在必要情况下，解码重绘得到的，
             UIImage *diskImage = [self diskImageForKey:key];
+            
             if (diskImage && self.config.shouldCacheImagesInMemory) {
+                // 获取图片所占内存大小
                 NSUInteger cost = SDCacheCostForImage(diskImage);
                 // 在磁盘中找到图片，先放入内存中，以便下次直接使用
                 [self.memCache setObject:diskImage forKey:key cost:cost];
             }
 
+            // 查询结束返回更新UI
             if (doneBlock) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     // 查询完成，返回缓存设置为SDImageCacheTypeDisk
@@ -415,7 +430,11 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
                 });
             }
         }
+        
+        
     });
+    
+    
 
     return operation;
 }

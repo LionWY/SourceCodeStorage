@@ -120,6 +120,8 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 }
 
 - (void)start {
+    
+    
     @synchronized (self) {
         if (self.isCancelled) {
             self.finished = YES;
@@ -127,15 +129,18 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
             return;
         }
 
-#if SD_UIKIT
+#if SD_UIKIT 
         Class UIApplicationClass = NSClassFromString(@"UIApplication");
         BOOL hasApplication = UIApplicationClass && [UIApplicationClass respondsToSelector:@selector(sharedApplication)];
+        // 进入后台后也允许继续执行请求
         if (hasApplication && [self shouldContinueWhenAppEntersBackground]) {
             __weak __typeof__ (self) wself = self;
             UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];
+            // 开启后台执行任务
             self.backgroundTaskId = [app beginBackgroundTaskWithExpirationHandler:^{
                 __strong __typeof (wself) sself = wself;
 
+                // 后台执行是有时间限制的，当时间到期时，取消所有任务，关闭后台任务，并失效。
                 if (sself) {
                     [sself cancel];
 
@@ -145,9 +150,11 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
             }];
         }
 #endif
+        // iOS 7 以后，使用NSURLSession 来进行网络请求
         NSURLSession *session = self.unownedSession;
         if (!self.unownedSession) {
             NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+            // 请求时间
             sessionConfig.timeoutIntervalForRequest = 15;
             
             /**
@@ -155,25 +162,32 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
              *  We send nil as delegate queue so that the session creates a serial operation queue for performing all delegate
              *  method calls and completion handler calls.
              */
+            // 针对当前任务，创建session，
+            // 这里代理队列为nil，所以，session创建一个串行操作队列，同步执行所有的代理方法和完成block回调
             self.ownedSession = [NSURLSession sessionWithConfiguration:sessionConfig
                                                               delegate:self
                                                          delegateQueue:nil];
             session = self.ownedSession;
         }
         
+        // 创建数据请求任务
         self.dataTask = [session dataTaskWithRequest:self.request];
         self.executing = YES;
     }
-    
+    // 任务执行，请求发送
     [self.dataTask resume];
 
+    
     if (self.dataTask) {
+        // 任务执行过程中，同一个url对应的所有progressBlock 不断回调
         for (SDWebImageDownloaderProgressBlock progressBlock in [self callbacksForKey:kProgressCallbackKey]) {
             progressBlock(0, NSURLResponseUnknownLength, self.request.URL);
         }
+        // 返回主线程发送通知，任务开始执行
         dispatch_async(dispatch_get_main_queue(), ^{
             [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:self];
         });
+        // 如果任务不存在，回调错误信息，请求链接不存在
     } else {
         [self callCompletionBlocksWithError:[NSError errorWithDomain:NSURLErrorDomain code:0 userInfo:@{NSLocalizedDescriptionKey : @"Connection can't be initialized"}]];
     }
@@ -251,7 +265,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 }
 
 #pragma mark NSURLSessionDataDelegate
-
+// 任务已经获取完整的返回数据
 - (void)URLSession:(NSURLSession *)session
           dataTask:(NSURLSessionDataTask *)dataTask
 didReceiveResponse:(NSURLResponse *)response
@@ -294,7 +308,7 @@ didReceiveResponse:(NSURLResponse *)response
         completionHandler(NSURLSessionResponseAllow);
     }
 }
-
+// 数据传输过程中
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
     [self.imageData appendData:data];
 
@@ -381,7 +395,12 @@ didReceiveResponse:(NSURLResponse *)response
         progressBlock(self.imageData.length, self.expectedSize, self.request.URL);
     }
 }
-
+// Invoke the completion routine with a valid NSCachedURLResponse to
+// allow the resulting data to be cached, or pass nil to prevent
+// caching. Note that there is no guarantee that caching will be
+// attempted for a given resource, and you should not rely on this
+// message to receive the resource data.
+// 
 - (void)URLSession:(NSURLSession *)session
           dataTask:(NSURLSessionDataTask *)dataTask
  willCacheResponse:(NSCachedURLResponse *)proposedResponse
@@ -401,6 +420,7 @@ didReceiveResponse:(NSURLResponse *)response
 
 #pragma mark NSURLSessionTaskDelegate
 
+// 刚接收完最后一条数据时调用的方法
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     @synchronized(self) {
         self.dataTask = nil;
@@ -455,7 +475,8 @@ didReceiveResponse:(NSURLResponse *)response
     }
     [self done];
 }
-
+// The task has received a request specific authentication challenge
+// 任务收到请求特定身份验证的质疑 http://www.desgard.com/SDWebImage3/
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler {
     
     NSURLSessionAuthChallengeDisposition disposition = NSURLSessionAuthChallengePerformDefaultHandling;
