@@ -28,7 +28,7 @@
 		6621A3DB1DC81D9E0081F9C5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6621A3DD1DC81D9E0081F9C5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6621A3E71DC83D000081F9C5 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
-		6621A4981DC83D180081F9C5 /* CF-1151.16.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "CF-1151.16.xcodeproj"; path = "../../../../源码objc/CF-1151.16/CF-1151.16.xcodeproj"; sourceTree = "<group>"; };
+		6621A4981DC83D180081F9C5 /* CF-1151.16 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "CF-1151.16"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,7 +63,7 @@
 		6621A3CB1DC81D9E0081F9C5 /* RunLoopTest */ = {
 			isa = PBXGroup;
 			children = (
-				6621A4981DC83D180081F9C5 /* CF-1151.16.xcodeproj */,
+				6621A4981DC83D180081F9C5 /* CF-1151.16 */,
 				6621A3CF1DC81D9E0081F9C5 /* AppDelegate.h */,
 				6621A3D01DC81D9E0081F9C5 /* AppDelegate.m */,
 				6621A3D21DC81D9E0081F9C5 /* ViewController.h */,
@@ -91,13 +91,6 @@
 				6621A3E71DC83D000081F9C5 /* CoreFoundation.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		6621A4991DC83D180081F9C5 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -147,12 +140,6 @@
 			mainGroup = 6621A3C01DC81D9D0081F9C5;
 			productRefGroup = 6621A3CA1DC81D9E0081F9C5 /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 6621A4991DC83D180081F9C5 /* Products */;
-					ProjectRef = 6621A4981DC83D180081F9C5 /* CF-1151.16.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				6621A3C81DC81D9D0081F9C5 /* RunLoopTest */,
