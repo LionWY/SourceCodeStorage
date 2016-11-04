@@ -13,6 +13,71 @@
 @end
 
 @implementation AppDelegate
+- (void)doFireTimer:(NSTimer *)timer
+{
+    NSLog(@"=====%@", timer);
+}
+
+- (void)threadMain
+
+{
+    
+    // The application uses garbage collection, so no autorelease pool is needed.
+    
+    NSRunLoop* myRunLoop = [NSRunLoop currentRunLoop];
+    
+    
+    
+    // Create a run loop observer and attach it to the run loop.
+    
+    CFRunLoopObserverContext  context = {0, (__bridge void *)(self), NULL, NULL, NULL};
+    
+    // CF_EXPORT CFRunLoopObserverRef CFRunLoopObserverCreate(CFAllocatorRef allocator, CFOptionFlags activities, Boolean repeats, CFIndex order, CFRunLoopObserverCallBack callout, CFRunLoopObserverContext *context);
+
+    
+    CFRunLoopObserverRef observer = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopAllActivities, YES, 0, NULL, &context);
+    
+
+    
+    
+    
+    if (observer)
+        
+    {
+        
+        CFRunLoopRef    cfLoop = [myRunLoop getCFRunLoop];
+        
+        CFRunLoopAddObserver(cfLoop, observer, kCFRunLoopDefaultMode);
+        
+    }
+    
+    
+    
+    // Create and schedule the timer.
+    
+    [NSTimer scheduledTimerWithTimeInterval:0.1 target:self
+     
+                                   selector:@selector(doFireTimer:) userInfo:nil repeats:YES];
+    
+    
+    
+    NSInteger    loopCount = 10;
+    
+    do
+        
+    {
+        
+        // Run the run loop 10 times to let the timer fire.
+        
+        [myRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+        
+        loopCount--;
+        
+    }
+    
+    while (loopCount);
+    
+}
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -22,7 +87,7 @@
 
    
     
-    
+    [self threadMain];
     
     
     
