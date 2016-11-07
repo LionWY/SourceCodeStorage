@@ -1419,6 +1419,7 @@ CFRunLoopRef CFRunLoopGetMain(void) {
 CFRunLoopRef CFRunLoopGetCurrent(void) {
     CHECK_FOR_FORK();
     
+    // 
     CFRunLoopRef rl = (CFRunLoopRef)_CFGetTSD(__CFTSDKeyRunLoop);
     if (rl) return rl;
     
@@ -1439,7 +1440,7 @@ static CFLock_t loopsLock = CFLockInit;
 // 获取一个对应于pthread_t 的 CFRunLoopRef
 CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
     
-    // 如果t 不存在，t 就是主线程 ，说明默认情况下主线程才有runLoop
+    // 如果t 不存在，t 就是主线程
     if (pthread_equal(t, kNilPthreadT)) {
         
         t = pthread_main_thread_np();
@@ -1479,7 +1480,7 @@ CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
         __CFLock(&loopsLock);
     }
     
-    // 字典中获取对应主线程的loop
+    // 字典中获取对应线程的loop
     CFRunLoopRef loop = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(t));
     
     // 解锁
@@ -2599,8 +2600,10 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         dispatch_source_set_event_handler_f(timeout_timer, __CFRunLoopTimeout);
         
         dispatch_source_set_cancel_handler_f(timeout_timer, __CFRunLoopTimeoutCancel);
+        
         uint64_t ns_at = (uint64_t)((__CFTSRToTimeInterval(startTSR) + seconds) * 1000000000ULL);
         dispatch_source_set_timer(timeout_timer, dispatch_time(1, ns_at), DISPATCH_TIME_FOREVER, 1000ULL);
+        
         // 定时器执行
         dispatch_resume(timeout_timer);
         
@@ -2648,7 +2651,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         // 执行当前runLoop中的block
         __CFRunLoopDoBlocks(rl, rlm);
         
-        // 4. runLoop 处理Source0事件
+        // 4. runLoop 是否处理Source0事件
         Boolean sourceHandledThisLoop = __CFRunLoopDoSources0(rl, rlm, stopAfterHandle);
         
         if (sourceHandledThisLoop) {
@@ -2785,8 +2788,9 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         // runloop 醒来
         __CFRunLoopUnsetSleeping(rl);
         
+        
         // 8.kCFRunLoopAfterWaiting 已被唤醒，通知observers
-	if (!poll && (rlm->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopAfterWaiting);
+        if (!poll && (rlm->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopAfterWaiting);
 
         // 处理消息
         handle_msg:;
