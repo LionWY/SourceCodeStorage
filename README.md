@@ -7,4 +7,6 @@
 
 [从源码看runLoop](http://www.jianshu.com/p/a0ea906682a5)
 
+[autorelease 详解](http://www.jianshu.com/p/2d3947839b83)
+
 
