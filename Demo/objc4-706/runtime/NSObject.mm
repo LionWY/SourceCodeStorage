@@ -627,10 +627,12 @@ struct magic_t {
 
 class AutoreleasePoolPage 
 {
+    // 当一个释放池没有包含任何对象，又刚好被推入栈中，就存储在TLS中，叫做空池占位符
     // EMPTY_POOL_PLACEHOLDER is stored in TLS when exactly one pool is 
     // pushed and it has never contained any objects. This saves memory 
     // when the top level (i.e. libdispatch) pushes and pops pools but 
     // never uses them.
+
 #   define EMPTY_POOL_PLACEHOLDER ((id*)1)
 
 #   define POOL_BOUNDARY nil
@@ -643,12 +645,28 @@ class AutoreleasePoolPage
         PAGE_MAX_SIZE;  // size and alignment, power of 2
 #endif
     static size_t const COUNT = SIZE / sizeof(id);
+    
+    /*
+     
+     #define I386_PGBYTES		4096		// bytes per 80386 page 
+     
+        
+    #define	PAGE_SIZE		I386_PGBYTES
+    
 
-    magic_t const magic;
+    #define PAGE_MAX_SIZE           PAGE_SIZE
+     
+     */
+
+    magic_t const magic; // 当前类完整性的校验
     id *next;
-    pthread_t const thread;
+    pthread_t const thread; // 当前类所处的线程
+    
+    // 双向链表
     AutoreleasePoolPage * const parent;
     AutoreleasePoolPage *child;
+    
+    
     uint32_t const depth;
     uint32_t hiwat;
 
@@ -737,10 +755,12 @@ class AutoreleasePoolPage
     }
 
 
+    // 
     id * begin() {
         return (id *) ((uint8_t *)this+sizeof(*this));
     }
 
+    // 
     id * end() {
         return (id *) ((uint8_t *)this+SIZE);
     }
@@ -783,6 +803,7 @@ class AutoreleasePoolPage
             AutoreleasePoolPage *page = hotPage();
 
             // fixme I think this `while` can be `if`, but I can't prove it
+            // 当正在使用的page 为空，就找到它的父 page，并设置为 hotPage
             while (page->empty()) {
                 page = page->parent;
                 setHotPage(page);
@@ -793,6 +814,7 @@ class AutoreleasePoolPage
             memset((void*)page->next, SCRIBBLE, sizeof(*page->next));
             page->protect();
 
+            // 非边界对象，进行 release
             if (obj != POOL_BOUNDARY) {
                 objc_release(obj);
             }
@@ -813,9 +835,11 @@ class AutoreleasePoolPage
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
         AutoreleasePoolPage *page = this;
+        // 获取最后面的 子 page
         while (page->child) page = page->child;
 
         AutoreleasePoolPage *deathptr;
+        
         do {
             deathptr = page;
             page = page->parent;
@@ -887,6 +911,7 @@ class AutoreleasePoolPage
     {
         AutoreleasePoolPage *result = (AutoreleasePoolPage *)
             tls_get_direct(key);
+        // 如果为空池占位符，说明没有使用，返回 nil
         if ((id *)result == EMPTY_POOL_PLACEHOLDER) return nil;
         if (result) result->fastcheck();
         return result;
@@ -894,12 +919,14 @@ class AutoreleasePoolPage
 
     static inline void setHotPage(AutoreleasePoolPage *page) 
     {
+        // 快速存储，并设置
         if (page) page->fastcheck();
         tls_set_direct(key, (void *)page);
     }
 
     static inline AutoreleasePoolPage *coldPage() 
     {
+        
         AutoreleasePoolPage *result = hotPage();
         if (result) {
             while (result->parent) {
@@ -913,11 +940,16 @@ class AutoreleasePoolPage
 
     static inline id *autoreleaseFast(id obj)
     {
+        // hotPage 即当前正使用的page
         AutoreleasePoolPage *page = hotPage();
+        
+        // 存在且未满
         if (page && !page->full()) {
             return page->add(obj);
+            // 存在且满
         } else if (page) {
             return autoreleaseFullPage(obj, page);
+            // 不存在
         } else {
             return autoreleaseNoPage(obj);
         }
@@ -932,6 +964,8 @@ class AutoreleasePoolPage
         assert(page == hotPage());
         assert(page->full()  ||  DebugPoolAllocation);
 
+        // 遍历page 的子page，直到找到一个未满的子page，然后把子page 设置为 hotPage， 
+        // 否则就把子page作为parent，新建子page，最后添加 obj
         do {
             if (page->child) page = page->child;
             else page = new AutoreleasePoolPage(page);
@@ -949,6 +983,7 @@ class AutoreleasePoolPage
         assert(!hotPage());
 
         bool pushExtraBoundary = false;
+        // 1. 如果存在有 空池占位符，后续会先添加 边界对象
         if (haveEmptyPoolPlaceholder()) {
             // We are pushing a second pool over the empty placeholder pool
             // or pushing the first object into the empty placeholder pool.
@@ -956,6 +991,7 @@ class AutoreleasePoolPage
             // that is currently represented by the empty placeholder.
             pushExtraBoundary = true;
         }
+        // 2. 如果对象不等于边界对象，并且缺少pool
         else if (obj != POOL_BOUNDARY  &&  DebugMissingPools) {
             // We are pushing an object with no pool in place, 
             // and no-pool debugging was requested by environment.
@@ -967,6 +1003,7 @@ class AutoreleasePoolPage
             objc_autoreleaseNoPool(obj);
             return nil;
         }
+        // 3. 如果添加的对象是边界对象， 设置 空池占位符，并返回，跟 1 对应
         else if (obj == POOL_BOUNDARY  &&  !DebugPoolAllocation) {
             // We are pushing a pool with no pool in place,
             // and alloc-per-pool debugging was not requested.
@@ -977,6 +1014,7 @@ class AutoreleasePoolPage
         // We are pushing an object or a non-placeholder'd pool.
 
         // Install the first page.
+        // 传入 nil， 说明是第一个page， 没有 parent page
         AutoreleasePoolPage *page = new AutoreleasePoolPage(nil);
         setHotPage(page);
         
@@ -991,6 +1029,7 @@ class AutoreleasePoolPage
 
 
     static __attribute__((noinline))
+    // 传入边界对象
     id *autoreleaseNewPage(id obj)
     {
         AutoreleasePoolPage *page = hotPage();
@@ -1012,8 +1051,10 @@ public:
     static inline void *push() 
     {
         id *dest;
+        // 调试内存池分配
         if (DebugPoolAllocation) {
             // Each autorelease pool starts on a new pool page.
+            // 每个自动释放池都重新开始一个新的 pool page
             dest = autoreleaseNewPage(POOL_BOUNDARY);
         } else {
             dest = autoreleaseFast(POOL_BOUNDARY);
@@ -1052,8 +1093,11 @@ public:
         AutoreleasePoolPage *page;
         id *stop;
 
+        // 如果是空池占位符，即不包含任何对象
         if (token == (void*)EMPTY_POOL_PLACEHOLDER) {
             // Popping the top-level placeholder pool.
+            // 如果是当前的poolPage，获取第一个父类，并进行 pop
+            
             if (hotPage()) {
                 // Pool was used. Pop its contents normally.
                 // Pool pages remain allocated for re-use as usual.
@@ -1065,9 +1109,13 @@ public:
             return;
         }
 
+        // 根据指针 token 获取token所在的 page
         page = pageForPointer(token);
         stop = (id *)token;
+        
+        // stop 不是边界对象
         if (*stop != POOL_BOUNDARY) {
+            
             if (stop == page->begin()  &&  !page->parent) {
                 // Start of coldest page may correctly not be POOL_BOUNDARY:
                 // 1. top-level pool is popped, leaving the cold page in place
@@ -1081,9 +1129,12 @@ public:
 
         if (PrintPoolHiwat) printHiwat();
 
+        // 此时，stop 是边界对象，即创建autoreleasepool时添加的第一个对象
+        // 释放栈中的所有对象，直至stop
         page->releaseUntil(stop);
 
         // memory: delete empty children
+        // 调试状况下，删除当前页面，并设置 父 page 为 hotpage
         if (DebugPoolAllocation  &&  page->empty()) {
             // special case: delete everything during page-per-pool debugging
             AutoreleasePoolPage *parent = page->parent;
@@ -1097,9 +1148,11 @@ public:
         } 
         else if (page->child) {
             // hysteresis: keep one empty child if page is more than half full
+            // 当前页不足一半，删除子 page
             if (page->lessThanHalfFull()) {
                 page->child->kill();
             }
+            // 否则删除 孙 page
             else if (page->child->child) {
                 page->child->child->kill();
             }
