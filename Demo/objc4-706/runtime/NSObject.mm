@@ -569,14 +569,20 @@ objc_moveWeak(id *dst, id *src)
    Autorelease pool implementation
 
    A thread's autorelease pool is a stack of pointers. 
+    一个线程的自动释放池是一个指针的堆栈
    Each pointer is either an object to release, or POOL_BOUNDARY which is 
      an autorelease pool boundary.
+    每个指针代表一个要释放的对象或者边界对象，即一个自动释放池的边界
    A pool token is a pointer to the POOL_BOUNDARY for that pool. When 
      the pool is popped, every object hotter than the sentinel is released.
+    一个 pool token 对应的是池的边界对象的指针地址，当清空池的时候，每个边界对象之后的对象都要被release
    The stack is divided into a doubly-linked list of pages. Pages are added 
      and deleted as necessary. 
+    栈被分成是一个以pages 组成的双向链表，必要时 pages 可以被添加或删除
    Thread-local storage points to the hot page, where newly autoreleased 
      objects are stored. 
+    // 线程本地存储指向hot page，即最新被添加的对象所处的那个page 
+ 
 **********************************************************************/
 
 // Set this to 1 to mprotect() autorelease pool contents
