@@ -91,7 +91,7 @@ union isa_t
 #   define ISA_MAGIC_MASK  0x000003f000000001ULL
 #   define ISA_MAGIC_VALUE 0x000001a000000001ULL
     struct {
-        uintptr_t nonpointer        : 1;
+        uintptr_t nonpointer        : 1; 
         uintptr_t has_assoc         : 1;
         uintptr_t has_cxx_dtor      : 1;
         uintptr_t shiftcls          : 33; // MACH_VM_MAX_ADDRESS 0x1000000000

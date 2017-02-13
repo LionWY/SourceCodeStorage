@@ -207,16 +207,19 @@ objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor)
     assert(!isTaggedPointer()); 
     
     if (!nonpointer) {
+        // 只记录地址信息
         isa.cls = cls;
     } else {
         assert(!DisableNonpointerIsa);
         assert(!cls->instancesRequireRawIsa());
 
+        // 新建一个 isa_t 指针
         isa_t newisa(0);
 
 #if SUPPORT_INDEXED_ISA
         assert(cls->classArrayIndex() > 0);
         newisa.bits = ISA_INDEX_MAGIC_VALUE;
+        // 0x000001a000000001ULL
         // isa.magic is part of ISA_MAGIC_VALUE
         // isa.nonpointer is part of ISA_MAGIC_VALUE
         newisa.has_cxx_dtor = hasCxxDtor;

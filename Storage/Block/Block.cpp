@@ -39,6 +39,7 @@ static struct __main_block_desc_0 {
 int main(int argc, char const *argv[])
 {
     
+    /** 
     
     struct __main_block_impl_0 tmp = __main_block_impl_0(__main_block_func_0, &__main_block_desc_0_DATA);
     
@@ -47,7 +48,7 @@ int main(int argc, char const *argv[])
     
     (testBlock -> FuncPtr)(testBlock);
     
-
+    **/
  void (* testBlock)() = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA));
 
  ((void (*)(__block_impl *))((__block_impl *)testBlock)->FuncPtr)((__block_impl *)testBlock);
