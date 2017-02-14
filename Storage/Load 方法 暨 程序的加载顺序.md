@@ -1,5 +1,8 @@
 # Load 方法 暨 程序的加载顺序
 
+![load 目录](http://oeb4c30x3.bkt.clouddn.com/20170214115627_NQHljl_Screenshot.jpeg)
+
+
 ## 前言
 
 众所周知，App 的入口是 `main` 函数，而在此之前，我们了解到的是系统会自动调用 `load` 方法。而且是先调用父类的，再是自己的，最后才是分类的。而为什么是这样呢，不清楚。
@@ -27,11 +30,11 @@
         * 在程序运行时它先将动态链接的 image 递归加载
         * 再从可执行文件 image 递归加载所有符号
     
-## load 流程
+## 加载流程
 
 * 在分析 load 之前，还需要了解下 runtime 的初始化入口。
 
-### __objc_init
+### 1. __objc_init
 > Bootstrap initialization. Registers our image notifier with dyld.
 > Called by libSystem BEFORE library initialization time
 
@@ -64,7 +67,7 @@ void _objc_init(void)
     
 
 
-### 1. load_images
+### 2. load_images
 > Process +load in the given images which are being mapped in by dyld
 
 * 处理 dyld 提供的已被 map_images 处理后的 images 中的 +load 方法
@@ -99,7 +102,7 @@ load_images(const char *path __unused, const struct mach_header *mh)
 
 3. 依次调用所有的 `load` 方法
 
-#### 1.2 prepare_load_methods
+#### 2.2 prepare_load_methods
 
 
 ```
@@ -141,7 +144,7 @@ void prepare_load_methods(const headerType *mhdr)
 
 2. 存储分类的 `load` 方法
 
-##### 1.2.1 schedule_class_load
+##### 2.2.1 schedule_class_load
 > Schedule +load for classes in this image, any un-+load-ed superclasses in other images, and any categories in this image.
 
 * 该方法是递归函数，找到未被加载的最顶级的父类，然后依次存储
@@ -165,7 +168,7 @@ static void schedule_class_load(Class cls)
 }
 ```
 
-##### 1.2.2 add_class_to_loadable_list
+##### 2.2.2 add_class_to_loadable_list
 > Class cls has just become connected. Schedule it for +load if it implements a +load method
 
 * 存储实现了 `load` 方法的类
@@ -220,7 +223,7 @@ void add_class_to_loadable_list(Class cls)
 
 3. `add_category_to_loadable_list` 分类存储方法，几乎一致
 
-### 2. call_load_methods
+### 3. call_load_methods
 > Call all pending class and category +load methods.
 > Class +load methods are called superclass-first. 
 > Category +load methods are not called until after the parent class's +load
@@ -268,7 +271,7 @@ void call_load_methods(void)
 
 3. `do {} while` 循环执行，直到数组为空，且分类方法也执行完毕，不再有新的分类方法
 
-### 3. call_class_loads
+### 4. call_class_loads
 
 * `call_class_loads` 方法比较简单，主要看分类方法的调用，这里涉及到在运行期间，后续又添加的 `load` 分类方法
 
@@ -367,7 +370,7 @@ static bool call_category_loads(void)
 
 * 这里着重提下，由于 OC 运行时的机制，系统之前已经收集完所有的 `load` 方法，并且正在执行 `load` 方法的时候，又有含有 `load` 方法的分类被添加进来，所以在执行分类的时候，又多出来 3、4、5 步，来保证所有的分类实现完毕。
 
-### 4. load
+### 5. load
 
 ```
 + (void)load
