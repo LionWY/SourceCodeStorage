@@ -87,7 +87,7 @@
 
    
     
-    [self threadMain];
+//    [self threadMain];
     
     
     

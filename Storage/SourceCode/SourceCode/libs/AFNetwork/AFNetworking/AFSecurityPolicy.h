@@ -113,9 +113,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  Whether or not the specified server trust should be accepted, based on the security policy.
+ 基于安全策略，是否接受指定的服务器信任
 
  This method should be used when responding to an authentication challenge from a server.
-
+ 当响应来自服务器的身份验证质询时，调用该方法
  @param serverTrust The X.509 certificate trust of the server.
  @param domain The domain of serverTrust. If `nil`, the domain will not be validated.
 

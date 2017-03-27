@@ -63,21 +63,25 @@
     return [self initWithBaseURL:nil sessionConfiguration:configuration];
 }
 
+// AFHTTPSessionManager 最终初始化方法
 - (instancetype)initWithBaseURL:(NSURL *)url
            sessionConfiguration:(NSURLSessionConfiguration *)configuration
-{
+{   
+    // 执行父类的 初始化
     self = [super initWithSessionConfiguration:configuration];
     if (!self) {
         return nil;
     }
 
     // Ensure terminal slash for baseURL path, so that NSURL +URLWithString:relativeToURL: works as expected
+    // 保证 url 最后是 以 “/” 结尾的
     if ([[url path] length] > 0 && ![[url absoluteString] hasSuffix:@"/"]) {
         url = [url URLByAppendingPathComponent:@""];
     }
 
     self.baseURL = url;
 
+    // 请求序列化，返回结果序列化
     self.requestSerializer = [AFHTTPRequestSerializer serializer];
     self.responseSerializer = [AFJSONResponseSerializer serializer];
 
@@ -133,6 +137,7 @@
                       failure:(void (^)(NSURLSessionDataTask * _Nullable, NSError * _Nonnull))failure
 {
 
+    // 返回 dataTask
     NSURLSessionDataTask *dataTask = [self dataTaskWithHTTPMethod:@"GET"
                                                         URLString:URLString
                                                        parameters:parameters
@@ -141,6 +146,7 @@
                                                           success:success
                                                           failure:failure];
 
+    // 启动
     [dataTask resume];
 
     return dataTask;
@@ -273,10 +279,16 @@
                                          failure:(void (^)(NSURLSessionDataTask *, NSError *))failure
 {
     NSError *serializationError = nil;
+    
+    // 根据已有的参数，创建 mutableURLRequest， 并返回 error
     NSMutableURLRequest *request = [self.requestSerializer requestWithMethod:method URLString:[[NSURL URLWithString:URLString relativeToURL:self.baseURL] absoluteString] parameters:parameters error:&serializationError];
+    
     if (serializationError) {
         if (failure) {
+            // 主线程 失败结果 
+            // 是否有自定义的 线程 来回调请求结果
             dispatch_async(self.completionQueue ?: dispatch_get_main_queue(), ^{
+                
                 failure(nil, serializationError);
             });
         }
@@ -284,7 +296,10 @@
         return nil;
     }
 
+    // ???
     __block NSURLSessionDataTask *dataTask = nil;
+    
+    // 创建 dataTask ，并在回调中返回结果
     dataTask = [self dataTaskWithRequest:request
                           uploadProgress:uploadProgress
                         downloadProgress:downloadProgress

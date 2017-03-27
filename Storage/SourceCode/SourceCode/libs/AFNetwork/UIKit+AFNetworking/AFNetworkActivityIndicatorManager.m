@@ -133,6 +133,7 @@ typedef void (^AFNetworkActivityActionBlock)(BOOL networkActivityIndicatorVisibl
 }
 
 - (void)incrementActivityCount {
+    // 手动执行 kvo, will 不作用
     [self willChangeValueForKey:@"activityCount"];
 	@synchronized(self) {
 		_activityCount++;
@@ -155,6 +156,7 @@ typedef void (^AFNetworkActivityActionBlock)(BOOL networkActivityIndicatorVisibl
         [self updateCurrentStateForNetworkActivityChange];
     });
 }
+
 
 - (void)networkRequestDidStart:(NSNotification *)notification {
     if ([AFNetworkRequestFromNotification(notification) URL]) {

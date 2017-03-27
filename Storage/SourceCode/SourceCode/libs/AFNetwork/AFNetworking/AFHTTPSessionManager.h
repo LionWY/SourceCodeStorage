@@ -112,7 +112,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (instancetype)manager;
 
-/**
+/*
  Initializes an `AFHTTPSessionManager` object with the specified base URL.
 
  @param url The base URL for the HTTP client.
@@ -148,6 +148,7 @@ NS_ASSUME_NONNULL_BEGIN
 
  @see -dataTaskWithRequest:completionHandler:
  */
+// get 请求，返回 一个 NSURLSessionDataTask 对象
 - (nullable NSURLSessionDataTask *)GET:(NSString *)URLString
                    parameters:(nullable id)parameters
                       success:(nullable void (^)(NSURLSessionDataTask *task, id _Nullable responseObject))success

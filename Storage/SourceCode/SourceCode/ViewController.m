@@ -10,7 +10,9 @@
 #import "SDWebImageManager.h"
 #import "UIImageView+WebCache.h"
 #import "UIView+WebCache.h"
-//#import "UIImageView+AFNetworking.h"
+#import "UIImageView+AFNetworking.h"
+#import "AFHTTPSessionManager.h"
+#import "AFNetworkActivityIndicatorManager.h"
 
 @interface ViewController ()
 
@@ -23,8 +25,19 @@
 
 @implementation ViewController
 - (IBAction)btn1Click:(id)sender {
-    [_imgView2 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"] placeholderImage:nil options:SDWebImageCacheMemoryOnly];
+//    [_imgView2 sd_setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"] placeholderImage:nil options:SDWebImageCacheMemoryOnly];
     
+//    [_imgView2 setImageWithURL:[NSURL URLWithString:@"http://oeb4c30x3.bkt.clouddn.com/door_two.jpg"]];
+    
+    [AFNetworkActivityIndicatorManager sharedManager].enabled = YES;
+    
+    [[AFHTTPSessionManager manager] GET:@"https://api.github.com/repos/vmg/redcarpet/issues?state=closed" parameters:nil progress:^(NSProgress * _Nonnull downloadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+    }];
     
 }
 - (IBAction)btn2Click:(id)sender {
